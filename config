@@ -1,0 +1,7 @@
+[config]
+db_name = output_db_filename
+table_name = table_name
+dataset_filename = input_filename.csv
+dataset_path = C:\datasets
+data_types = string, int, string, string, string, int, int, string, string, string, float, float
+primary_key = user_id
