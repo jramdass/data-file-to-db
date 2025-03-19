@@ -2,10 +2,12 @@ import configparser
 import sqlite3
 import csv
 import re
+import sys
 
 def get_config_vars():
-    config = configparser.RawConfigParser()
-    config.read_file(open(r'config'))
+    with open(r'config', encoding="UTF-8") as config_file:
+        config = configparser.RawConfigParser()
+        config.read_file(config_file)
 
     return config.get('config', 'db_name') + ".db",\
         config.get('config', 'dataset_path') + '\\' + config.get('config', 'dataset_filename'),\
@@ -40,7 +42,7 @@ def execute_statement(statements):
         try:
             res = cur.execute(statement)
             con.commit()
-        except Exception as e:
+        except (sqlite3.OperationalError, sqlite3.IntegrityError) as e:
             print(e)
             return e
 
@@ -86,14 +88,18 @@ if __name__ == "__main__":
     db_name, dataset_path, table_name, data_types, primary_key = get_config_vars()
     data = []
 
-    with open(dataset_path, newline='') as csvfile:
-        reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        headers = next(reader)
+    try:
+        with open(dataset_path, newline='', encoding='UTF-8') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+            headers = next(reader)
 
-        sanitized_headers = sanitize_headers(headers)
+            sanitized_headers = sanitize_headers(headers)
 
-        for line in reader:
-            data.append(line)
+            for line in reader:
+                data.append(line)
+    except FileNotFoundError as e:
+        print("Input file not found. Please check config and try again")
+        sys.exit()
 
     data_types = data_types.replace(' ', '')
     data_types = data_types.split(',')
@@ -113,8 +119,12 @@ if __name__ == "__main__":
                 insert_data()
             case '3':
                 data = select_data()
-                for item in data:
-                    print(item)
+                try:
+                    for item in data:
+                        print(item)
+                except TypeError as e:
+                    print("Data not found - ", e)
+
             case '0':
                 print("Goodbye")
                 break
